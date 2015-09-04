@@ -4,14 +4,15 @@ require 'optparse'
 require 'library_stdnums'
 require 'sqlite3'
 
-opts = ARGV.getopts('l:')
+opts = ARGV.getopts('l:', 'k:')
 
 db = SQLite3::Database.new("erms.db")
 sql = <<EOS
 CREATE TABLE IF NOT EXISTS journals (
   issn varchar(8),
   price integer,
-  title varchar(255)
+  title varchar(255),
+  print_issn varchar(8)
 );
 EOS
 db.execute(sql)
@@ -30,5 +31,25 @@ csv.each do |line|
   end
 end
 
-db.close
+# KBARTのファイルを追加
+if opts['k']
+  kbart = CSV.table(File.open(opts['k']), col_sep: "\t")
+  kbart.each do |line|
+    issn = StdNum::ISSN.normalize(line[:online_identifier])
+    print_issn = StdNum::ISSN.normalize(line[:print_identifier])
+    result = db.execute(
+      'SELECT issn FROM journals WHERE issn = ?',
+      issn
+    )
+    unless result.empty?
+      db.execute(
+        'UPDATE journals SET title = ?, print_issn = ? WHERE issn = ?',
+        line[:publication_title],
+        print_issn,
+        issn
+      )
+    end
+  end
+end
 
+db.close
