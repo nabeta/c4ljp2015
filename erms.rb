@@ -4,7 +4,7 @@ require 'optparse'
 require 'library_stdnums'
 require 'sqlite3'
 
-opts = ARGV.getopts('l:', 'k:', 'd:', 'e:', 'c:')
+opts = ARGV.getopts('l:', 'k:', 'd:', 'e:', 'c:', 's:', 'j:')
 
 db = SQLite3::Database.new("erms.db")
 sql = <<EOS
@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS journals (
   print_issn varchar(8),
   open_access integer,
   subject varchar(255),
-  download integer
+  download integer,
+  snip float,
+  impact_factor float
 );
 EOS
 db.execute(sql)
@@ -121,6 +123,48 @@ if opts['c']
         issn
       )
       puts "#{issn}\tfound COUNTER stat"
+    end
+  end
+end
+
+# Scopusのジャーナルリストを読み込む
+# 追加されるもの: SNIP
+if opts['s']
+  scopus = CSV.table(open(opts['s']), col_sep: "\t")
+  scopus.each do |line|
+    issn = StdNum::ISSN.normalize(line[:eissn].to_s)
+    result = db.execute(
+      'SELECT issn FROM journals WHERE issn = ?',
+      issn
+    )
+    unless result.empty?
+      db.execute(
+        'UPDATE journals SET snip = ? WHERE issn = ?',
+        line[:"2014_snip"],
+        issn
+      )
+      puts "#{issn}\tfound SNIP value"
+    end
+  end
+end
+
+# JCRのファイルを読み込む
+# 追加されるもの: インパクトファクター
+if opts['j']
+  jcr = CSV.table(open(opts['j']))
+  jcr.each do |line|
+    issn = StdNum::ISSN.normalize(line[:issn])
+    result = db.execute(
+      'SELECT issn FROM journals WHERE print_issn = ?',
+      issn
+    )
+    unless result.empty?
+      db.execute(
+        'UPDATE journals SET impact_factor = ? WHERE print_issn = ?',
+        line[:journal_impact_factor],
+        issn
+      )
+      puts "#{issn}\tfound Impact Factor value"
     end
   end
 end
