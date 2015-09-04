@@ -1,0 +1,15 @@
+{
+  "type" : "csv",
+  "csv_file" : {
+    "folder" : "/Users/kosuke/c4ljp2015/elasticsearch/",
+    "filename_pattern" : "result\\.csv$",
+    "first_line_is_header" : "true",
+    "field_id" : "issn",
+    "poll" : "1m",
+    "field_separator" : "\t"
+  },
+  "index": {
+    "index" : "erms",
+    "type" : "journal"
+  }
+}

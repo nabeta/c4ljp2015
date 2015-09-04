@@ -1,0 +1,35 @@
+{
+  "mappings": {
+    "journal" : {
+      "properties" : {
+        "price" : {
+          "type" : "integer"
+        },
+        "download" : {
+          "type" : "integer"
+        },
+        "issn" : {
+          "type" : "string"
+        },
+        "print_issn" : {
+          "type" : "string"
+        },
+        "title" : {
+          "type" : "string"
+        },
+        "open_access" : {
+          "type" : "boolean"
+        },
+        "subject" : {
+          "type" : "string"
+        },
+        "snip" : {
+          "type" : "float"
+        },
+        "impact_factor" : {
+          "type" : "float"
+        }
+      }
+    }
+  }
+}
