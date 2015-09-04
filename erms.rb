@@ -4,7 +4,7 @@ require 'optparse'
 require 'library_stdnums'
 require 'sqlite3'
 
-opts = ARGV.getopts('l:', 'k:', 'd:')
+opts = ARGV.getopts('l:', 'k:', 'd:', 'e:')
 
 db = SQLite3::Database.new("erms.db")
 sql = <<EOS
@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS journals (
   price integer,
   title varchar(255),
   print_issn varchar(8),
-  open_access integer
+  open_access integer,
+  subject varchar(255)
 );
 EOS
 db.execute(sql)
@@ -70,6 +71,27 @@ if opts['d']
         issn
       )
       puts "#{issn}\topen access"
+    end
+  end
+end
+
+# ESIのジャーナルリストを読み込む
+# 追加されるもの: 分野情報
+if opts['e']
+  esi = CSV.table(open(opts['e']), col_sep: "\t")
+  esi.each do |line|
+    issn = StdNum::ISSN.normalize(line[:eissn])
+    result = db.execute(
+      'SELECT issn FROM journals WHERE issn = ?',
+      issn
+    )
+    unless result.empty?
+      db.execute(
+        'UPDATE journals SET subject = ? WHERE issn = ?',
+        line[:category_name],
+        issn
+      )
+      puts "#{issn}\tfound subject"
     end
   end
 end
