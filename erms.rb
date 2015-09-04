@@ -4,7 +4,7 @@ require 'optparse'
 require 'library_stdnums'
 require 'sqlite3'
 
-opts = ARGV.getopts('l:', 'k:', 'd:', 'e:')
+opts = ARGV.getopts('l:', 'k:', 'd:', 'e:', 'c:')
 
 db = SQLite3::Database.new("erms.db")
 sql = <<EOS
@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS journals (
   title varchar(255),
   print_issn varchar(8),
   open_access integer,
-  subject varchar(255)
+  subject varchar(255),
+  download integer
 );
 EOS
 db.execute(sql)
@@ -92,6 +93,34 @@ if opts['e']
         issn
       )
       puts "#{issn}\tfound subject"
+    end
+  end
+end
+
+# COUNTERの集計ファイルを読み込む
+# 追加されるもの: ダウンロード数　
+if opts['c']
+  counter = File.open(opts['c'])
+  7.times do
+    counter.gets
+  end
+
+  CSV.parse(counter.read, headers: true) do |csv|
+    count = csv.to_a
+    count.shift(7)
+    n = 0
+    issn = StdNum::ISSN.normalize(csv['Online ISSN'])
+    result = db.execute(
+      'SELECT issn FROM journals WHERE issn = ?',
+      issn
+    )
+    unless result.empty?
+      db.execute(
+        'UPDATE journals SET download = ? WHERE issn = ?',
+        count[0][1],
+        issn
+      )
+      puts "#{issn}\tfound COUNTER stat"
     end
   end
 end
